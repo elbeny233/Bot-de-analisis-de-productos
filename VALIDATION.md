@@ -1,32 +1,35 @@
-# Validación de Fase 1
+# Resultados de validación
 
-Entorno ejecutado: Linux, Python 3.12.14. Fecha: 2026-10-13.
+## Fase 2 — versión 0.2.0
 
-- Pytest: 20 pruebas pasadas, 0 fallidas, 0 omitidas.
-- Reinstalación desde requirements-dev.lock en un segundo venv limpio: correcta;
-  mismas 20 pruebas pasadas.
+Entorno ejecutado: Linux, Python 3.12.14.
+
+- Pytest: 47 pruebas pasadas, 0 fallidas, 0 omitidas.
 - Ruff check y format --check: correctos.
 - pip check: sin dependencias incompatibles.
-- Alembic check: sin diferencias entre esquema migrado y modelos.
-- HTTP real con Uvicorn: / y /health responden 200;
-  health devuelve status=ok, phase=1, schema_revision=0001, publicaciones deshabilitadas.
-- SQLite PRAGMA integrity_check: ok; 11 categorías persistentes.
-- Tests de respaldo validan integridad y categorías en la copia.
-- Un aviso de deprecación de Starlette/AnyIO en TestClient, sin fallo funcional.
+- Alembic check: sin diferencias entre esquema y modelos.
+- Migración 0001 → 0002: conserva precios, configuración de fuente y administrador.
+- Servidor Uvicorn real: / y /health 200; phase=2 y scheduler_running=true.
+- Control local real: sin credenciales 401; con administrador de prueba 200.
+- Revisión automática y manual real por HTTP: dos ejecuciones success,
+  tres productos y seis observaciones simuladas; no se crean ofertas ni publicaciones.
+- Reinicio real del proceso: conserva próxima revisión, sin duplicar ejecuciones.
+- Pruebas incluyen concurrencia, dos pulsos programados, bloqueo entre procesos,
+  recuperación de ejecución interrumpida, pausas, errores y reintentos progresivos.
+- La prueba de lotes duplicados detectó un fallo de validación; se corrigió antes de entregar.
+- Se mantiene un aviso de deprecación de Starlette/AnyIO en TestClient, sin fallo funcional.
 
-No ejecutado: Windows, Docker, tiendas, Telegram, pagos, monitor ni login web.
-Los últimos cinco no están implementados en la Fase 1.
-Durante las pruebas no hubo publicaciones de ofertas, cobros ni revocaciones de miembros.
-La entrega del código a GitHub es una operación separada autorizada por el propietario.
-El archivo vacío original main se conserva.
+Windows de Fase 2: pendiente de validación por el propietario. tzdata se incluye
+para que el programador tenga datos de zonas horarias también en Windows.
+Docker: archivos preparados, no ejecutado en este entorno.
+Fuentes reales, analítica de descuentos, Telegram, pagos y control de membresías:
+no implementados ni verificados en esta fase. El control local no es el panel completo.
+No se consulta ninguna tienda, se publican ofertas o se revocan accesos durante pruebas.
 
-Se guardaron install_script y start_skill en el borrador del entorno cloud.
-El propietario debe revisar, guardar y publicar el entorno en su configuración.
-Guardar el borrador no equivale a publicación ni validación de una tarea restaurada.
+## Fase 1 — validación previa
 
-## Corrección posterior
-
-El propietario ejecutó las pruebas en Windows: 19 pasaron y una falló con
-WinError 32 al eliminar un respaldo cuya conexión seguía abierta. Se corrigió
-el cierre explícito de conexiones en la CLI y las pruebas. La suite corregida
-pasa 20 pruebas en Linux; pendiente de repetir en Windows por el propietario.
+20 pruebas pasadas en Linux y servidor/base de datos verificados.
+El propietario detectó WinError 32 en Windows en el cierre de una conexión SQLite.
+Se corrigió el cierre de conexiones. Posteriormente, el propietario aportó capturas con
+20 passed y /health status=ok, además de la página inicial funcionando en Windows.
+La entrega de código a GitHub está autorizada por el propietario.

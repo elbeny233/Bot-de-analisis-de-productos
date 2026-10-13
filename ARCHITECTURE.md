@@ -1,36 +1,64 @@
-# Arquitectura inicial
+# Arquitectura — Fases 1 y 2
 
-Flujo implementado: variables/.env → Settings → FastAPI → SQLAlchemy → SQLite.
-La CLI aplica Alembic, inicializa categorías y crea respaldos o un administrador local.
-Las rutas de esta fase no permiten consultar datos privados ni modificar el sistema.
+Settings → FastAPI → MonitorRuntime/APScheduler → MonitorService → Collector.
+Los datos normalizados de Collector se validan antes de una transacción de persistencia.
+SQLAlchemy → SQLite almacena productos, precios, fuentes, próxima revisión y ejecuciones.
+La obtención de datos no calcula descuentos ni crea ofertas; la analítica llegará en Fase 3.
 
-| Módulo | Estado en Fase 1 |
+## Módulos
+
+| Módulo | Implementado |
 |---|---|
-| core | Configuración, validación, hash PBKDF2-SHA256 y registros de arranque |
-| database | 13 tablas, motor, sesiones, integridad y categorías iniciales |
-| main/cli | Página inicial, readiness, inicialización y respaldos |
-| collectors/catalog/analytics | Espacios reservados; Fases 2–4 |
-| scheduler/alerts/telegram | Espacios reservados; Fases 2 y 5 |
-| subscriptions/dashboard | Espacios reservados; Fases 6–7 |
+| core | Configuración, hash PBKDF2-SHA256, bloqueo del SO |
+| collectors | Contrato normalizado, errores tipificados, demo sin red |
+| database | 13 modelos, motor, migraciones 0001/0002, inicialización repetible |
+| scheduler | Reintentos, persistencia, recuperación, programación por fuente |
+| dashboard | Control local de monitoreo; el panel completo es Fase 6 |
+| main/cli | Readiness, inicialización, administrador, respaldos |
+| catalog/analytics | Reservados para Fase 3 |
+| alerts/telegram/subscriptions | Reservados para fases posteriores |
 
-## Persistencia
+## Concurrencia y recuperación
 
-Category, Store, Source, Product, PriceObservation, Offer, AdminUser, Member,
-Membership, Payment, MonitorRun, Publication y EventLog.
-La identidad de producto incluye fuente, identificador y variante obligatoria.
-Cada observación conserva su moneda; la futura analítica deberá filtrar por moneda.
-La disponibilidad desconocida es NULL. Precios monetarios usan Numeric(14,2).
-SQLite conserva fechas sin zona; el contrato del proyecto es guardar y leer UTC.
-El motor habilita claves foráneas en cada conexión y espera hasta 15 s ante bloqueos.
-No se ejecuta `create_all` en producción: los cambios se versionan en Alembic.
-La migración inicial es explícita e independiente de futuros cambios de modelos.
+Un archivo junto a la base de datos (`radar.db.monitor.lock`) se bloquea mediante flock
+(Linux) o msvcrt (Windows). El SO libera el bloqueo al morir el proceso; el archivo puede
+permanecer y no debe borrarse para forzar otra instancia. Una segunda instancia falla.
+Usar exactamente un worker de Uvicorn y no usar --reload en operación continua.
+Cada fuente reclama running_token con UPDATE condicional. Las ejecuciones programadas
+y manuales comparten este mecanismo. APScheduler usa max_instances=1 y coalesce=True.
 
-## Seguridad y límites
+next_run_at se guarda en SQLite y los jobs se reconstruyen al arrancar. Revisiones vencidas
+se agrupan en un único pulso; no se reproducen todos los intervalos perdidos. Tras obtener
+el bloqueo, los runs que estaban running pasan a interrupted con fecha y código de reinicio.
+La configuración y las pausas existentes no se sobrescriben al sembrar la fuente demo.
+El programador sincroniza configuración cada cinco segundos; los controles sincronizan
+inmediatamente. Una revisión en curso finaliza al pausar su fuente.
 
-PBKDF2-SHA256: salt aleatorio de 16 bytes, 600000 iteraciones, comparación constante.
-No hay credenciales predeterminadas; create-admin solicita la contraseña sin mostrarla.
-El login web aún no existe. No exponer a Internet. Solo enlazar a 127.0.0.1.
-No hay peticiones a URLs de productos en esta fase. Antes de incorporarlas se requiere
-validación de destino, prevención de SSRF, permisos de fuente y límites de consulta.
-No se almacena ni registra un token de Telegram. Las publicaciones están bloqueadas.
-SQLite es adecuada para desarrollo local, no se promete concurrencia comercial.
+## Fallos
+
+Por revisión: hasta tres intentos; errores temporales esperan 1 y 2 segundos (configurable).
+Errores de datos, conectores desconocidos o fuentes no disponibles no se reintentan.
+Tras tres revisiones fallidas consecutivas la fuente se deshabilita, con evento persistente.
+Un éxito reinicia el contador. Un fallo de una fuente no detiene otras.
+Si la base de datos impide registrar el resultado, queda un error de runtime en consola;
+la revisión se recupera como interrupted después de resolver el problema y reiniciar.
+Los futuros conectores de red deberán definir timeout y respetar límites y condiciones:
+esta versión no incorpora ningún conector externo, navegador ni evasión de controles.
+
+## Identidad y demostración
+
+Identidad: source_id + source_product_id + variant_key. No se mezclan 500g y 1kg.
+Cada observación conserva moneda, UTC, envío, condiciones y disponibilidad nullable.
+Cada lote se valida completo y se rechazan identificadores repetidos antes de guardar.
+Productos y observaciones incluyen is_simulated. La demo usa nombres SIMULADO y no URLs.
+La futura analítica deberá separar monedas y excluir datos simulados de publicaciones.
+SQLite devuelve datetimes sin zona: el contrato de almacenamiento y lectura es UTC.
+
+## Seguridad local
+
+Control /monitor con HTTP Basic y administradores habilitados de rol admin.
+No hay cuenta predeterminada. PBKDF2-SHA256: salt 16 bytes y 600000 iteraciones.
+Las acciones requieren token CSRF firmado, vinculado al usuario y válido 15 minutos.
+Se escapa HTML y se limitan intentos de autenticación. Los eventos almacenan códigos,
+no excepciones ni secretos. HTTP Basic se permite aquí solo en loopback; no exponer
+el panel a Internet. Antes de despliegue público se requiere HTTPS y revisión de seguridad.

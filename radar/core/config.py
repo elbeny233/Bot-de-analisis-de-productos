@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     app_name: str = "Radar Ofertas VIP"
     database_url: str = "sqlite:///./data/radar.db"
     monitor_interval_minutes: int = Field(default=30, ge=1, le=10080)
+    scheduler_enabled: bool = True
+    monitor_max_attempts: int = Field(default=3, ge=1, le=5)
+    monitor_retry_seconds: float = Field(default=1, ge=0.1, le=30)
+    monitor_pause_after_failures: int = Field(default=3, ge=1, le=10)
     publications_enabled: bool = False
     log_level: str = "INFO"
 
@@ -19,14 +23,16 @@ class Settings(BaseSettings):
     def validate_database(cls, value: str) -> str:
         url = make_url(value)
         if url.drivername != "sqlite" or not url.database:
-            raise ValueError("La Fase 1 admite únicamente SQLite con una base de datos definida")
+            raise ValueError(
+                "El desarrollo local admite únicamente SQLite con una base de datos definida"
+            )
         return value
 
     @field_validator("publications_enabled")
     @classmethod
     def disable_publications(cls, value: bool) -> bool:
         if value:
-            raise ValueError("Las publicaciones externas no están habilitadas en la Fase 1")
+            raise ValueError("Las publicaciones externas no están habilitadas en esta fase")
         return value
 
     @field_validator("log_level")

@@ -49,6 +49,8 @@ class Source(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     interval_minutes: Mapped[int] = mapped_column(Integer, default=30)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    running_token: Mapped[str | None] = mapped_column(String(32))
 
 
 class Product(Base):
@@ -66,6 +68,7 @@ class Product(Base):
     seller: Mapped[str | None] = mapped_column(String(200))
     url: Mapped[str | None] = mapped_column(String(2048))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    is_simulated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
 
 class PriceObservation(Base):
@@ -81,6 +84,7 @@ class PriceObservation(Base):
     currency: Mapped[str] = mapped_column(String(3), default="MXN")
     available: Mapped[bool | None] = mapped_column(Boolean)
     shipping_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    is_simulated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     conditions: Mapped[str | None] = mapped_column(Text)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
@@ -148,6 +152,8 @@ class MonitorRun(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_code: Mapped[str | None] = mapped_column(String(100))
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    observations_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 class Publication(Base):

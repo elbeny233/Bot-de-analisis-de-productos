@@ -12,7 +12,7 @@ from sqlalchemy.engine import make_url
 
 from radar.core.config import Settings
 from radar.core.security import hash_password
-from radar.database.bootstrap import seed_categories
+from radar.database.bootstrap import seed_categories, seed_demo_source
 from radar.database.models import AdminUser
 from radar.database.session import build_engine, session_factory
 
@@ -46,6 +46,7 @@ def main():
         with session_factory(engine)() as session:
             if args.command == "init-db":
                 seed_categories(session)
+                seed_demo_source(session, settings.monitor_interval_minutes)
                 print("Base de datos migrada y categorías inicializadas")
             else:
                 if not args.username.strip() or len(args.username) > 100:
@@ -62,7 +63,7 @@ def main():
                     parser.error(str(error))
                 session.add(AdminUser(username=args.username, password_hash=encoded))
                 session.commit()
-                print("Administrador creado; el inicio de sesión web llegará en la Fase 6")
+                print("Administrador creado; puedes entrar al control local de monitoreo")
     finally:
         engine.dispose()
 

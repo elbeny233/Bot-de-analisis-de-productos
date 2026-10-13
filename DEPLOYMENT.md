@@ -24,7 +24,7 @@ La restauración es una operación del propietario; no se ejecuta automáticamen
 
 ## Docker futuro
 
-Se proporcionan Dockerfile y compose.yaml para ejecutar la misma Fase 1 con volumen
+Se proporcionan Dockerfile y compose.yaml para ejecutar la misma Fase 2 con volumen
 persistente y puerto ligado a loopback. No se han validado con Docker en este entorno.
 No publicar puertos públicamente sin autenticación, revisión de seguridad y HTTPS.
 
@@ -35,5 +35,9 @@ docker compose stop
 ```
 
 No ejecutar `docker compose down -v`: elimina el volumen de datos.
-Antes de operación continua faltan monitoreo, panel autenticado, límites, integraciones
+Antes de operación comercial faltan el panel completo, analítica, integraciones
 reales verificadas, revisión de dependencias, observabilidad y política de respaldo.
+
+Usar un único worker. El proceso adquiere un bloqueo del SO por base de datos; no
+eliminarlo para iniciar otra instancia. next_run_at se restaura; los procesos no sobreviven
+a snapshots. Al pausar una fuente, su ejecución ya iniciada finaliza normalmente.

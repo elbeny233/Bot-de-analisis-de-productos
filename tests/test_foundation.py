@@ -188,7 +188,7 @@ def test_missing_database_returns_unready(tmp_path):
     settings = Settings(database_url=f"sqlite:///{tmp_path / 'missing.db'}", _env_file=None)
     with TestClient(create_app(settings)) as client:
         assert client.get("/health").status_code == 503
-        assert "Fase 1" in client.get("/").text
+        assert "Fase 2" in client.get("/").text
         assert client.get("/docs").status_code == 404
 
 
@@ -201,7 +201,7 @@ def test_migration_restart_and_backup(tmp_path):
         )
     with closing(sqlite3.connect(database)) as connection:
         assert connection.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == 11
-        assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0001"
+        assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0002"
     settings = Settings(database_url=f"sqlite:///{database}", _env_file=None)
     for _ in range(2):
         with TestClient(create_app(settings)) as client:

@@ -1,8 +1,9 @@
-# Instalación en Windows 11 (PowerShell)
+# Windows 11 — instalación nueva
 
-Instala Python 3.12 de python.org y Git. Descarga o copia **los archivos de esta versión**
-a una carpeta local. En GitHub puedes usar Code → Download ZIP y extraer el archivo.
-Abre PowerShell en la carpeta que contiene pyproject.toml y alembic.ini.
+Instala Python 3.12.10 de python.org. No necesitas Git ni Docker.
+Descarga el proyecto desde GitHub (Code → Download ZIP), extrae y abre PowerShell
+**en la carpeta que contiene pyproject.toml**, usando Alt+D y escribiendo powershell.
+Si ya tienes Fase 1, sigue [UPDATE_WINDOWS.md](UPDATE_WINDOWS.md).
 
 ```powershell
 py -3.12 --version
@@ -12,25 +13,23 @@ py -3.12 -m venv .venv
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 .\.venv\Scripts\python.exe -m radar.cli init-db
 .\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m ruff check radar tests migrations
+.\.venv\Scripts\python.exe -m radar.cli create-admin --username propietario
 .\.venv\Scripts\python.exe -m uvicorn radar.main:app --host 127.0.0.1 --port 8000
 ```
 
-No requiere activar scripts ni modificar la política de ejecución de PowerShell.
-Abre http://127.0.0.1:8000 en tu computadora. En otra terminal, desde la misma carpeta:
+Ejecuta uno por uno y detente si hay ERROR. create-admin pide una contraseña de
+mínimo 12 caracteres y confirmación; al escribirla no se muestran caracteres (normal).
+Si ya existe el administrador, no vuelvas a crearlo: usa sus credenciales.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:8000/health
-```
+Abre http://127.0.0.1:8000 y entra al control de monitoreo. Introduce propietario y
+la contraseña elegida. Verás datos SIMULADOS, próximas revisiones, estados y registros.
+Pulsa Revisar ahora y comprueba una ejecución success con tres precios guardados.
+La disponibilidad desconocida se conserva. No son ofertas reales ni se envían mensajes.
 
-Resultado esperado: status=ok, phase=1, schema_revision=0001,
-publications_enabled=False. Detén con Ctrl+C; reinicia con el comando uvicorn anterior.
-Opcional, después de migrar (no habilita un login web):
+En /health se espera status=ok, phase=2, schema_revision=0002,
+scheduler_running=true y publications_enabled=false. Deja PowerShell abierto.
+Detener: Ctrl+C. Reiniciar: repetir el comando uvicorn. Si otra instancia está abierta,
+detenerla antes: no usar múltiples workers ni borrar el archivo .monitor.lock.
 
-```powershell
-.\.venv\Scripts\python.exe -m radar.cli create-admin --username propietario
-.\.venv\Scripts\python.exe -m radar.cli backup
-```
-
-No introduzcas secretos en GitHub. Windows requiere validación por el propietario:
-el desarrollo y las pruebas de esta entrega se ejecutan en Linux con Python 3.12.
+Pruebas de Fase 2 ejecutadas en Linux; Windows requiere validación del propietario.
+La Fase 1 y su corrección de cierre SQLite ya se verificaron por el propietario en Windows.

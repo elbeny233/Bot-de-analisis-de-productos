@@ -1,5 +1,10 @@
 # Cambios
 
+## Corrección de compatibilidad Windows
+
+- Cierre explícito de conexiones SQLite al respaldar y validar respaldos.
+- Corrige WinError 32 al eliminar el respaldo temporal en las pruebas.
+
 ## 0.1.0 — Fase 1
 
 - Estructura modular Python/FastAPI y configuración mediante entorno.

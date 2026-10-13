@@ -2,6 +2,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -198,7 +199,7 @@ def test_migration_restart_and_backup(tmp_path):
         subprocess.run(
             [sys.executable, "-m", "radar.cli", "init-db"], check=True, env=env, capture_output=True
         )
-    with sqlite3.connect(database) as connection:
+    with closing(sqlite3.connect(database)) as connection:
         assert connection.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == 11
         assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0001"
     settings = Settings(database_url=f"sqlite:///{database}", _env_file=None)
@@ -216,7 +217,7 @@ def test_migration_restart_and_backup(tmp_path):
     )
     backup = result.stdout.strip().split(": ", 1)[1]
     try:
-        with sqlite3.connect(backup) as connection:
+        with closing(sqlite3.connect(backup)) as connection:
             assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
             assert connection.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == 11
     finally:

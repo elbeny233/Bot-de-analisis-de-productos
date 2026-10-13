@@ -23,3 +23,10 @@ El archivo vacío original main se conserva.
 Se guardaron install_script y start_skill en el borrador del entorno cloud.
 El propietario debe revisar, guardar y publicar el entorno en su configuración.
 Guardar el borrador no equivale a publicación ni validación de una tarea restaurada.
+
+## Corrección posterior
+
+El propietario ejecutó las pruebas en Windows: 19 pasaron y una falló con
+WinError 32 al eliminar un respaldo cuya conexión seguía abierta. Se corrigió
+el cierre explícito de conexiones en la CLI y las pruebas. La suite corregida
+pasa 20 pruebas en Linux; pendiente de repetir en Windows por el propietario.

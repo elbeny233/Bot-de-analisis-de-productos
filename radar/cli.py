@@ -1,6 +1,7 @@
 import argparse
 import getpass
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,9 +33,12 @@ def main():
         destination.mkdir(exist_ok=True)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         output = destination / f"radar-{timestamp}.db"
-        with sqlite3.connect(f"{Path(database).resolve().as_uri()}?mode=ro", uri=True) as src:
-            with sqlite3.connect(output) as dst:
-                src.backup(dst)
+        with closing(
+            sqlite3.connect(f"{Path(database).resolve().as_uri()}?mode=ro", uri=True)
+        ) as src:
+            with closing(sqlite3.connect(output)) as dst:
+                with dst:
+                    src.backup(dst)
         print(f"Respaldo creado: {output}")
         return
     engine = build_engine(settings.database_url)

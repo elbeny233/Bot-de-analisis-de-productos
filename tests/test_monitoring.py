@@ -44,7 +44,7 @@ def database(tmp_path):
     Base.metadata.create_all(engine)
     with engine.begin() as connection:
         connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
-        connection.execute(text("INSERT INTO alembic_version VALUES ('0002')"))
+        connection.execute(text("INSERT INTO alembic_version VALUES ('0003')"))
     sessions = session_factory(engine)
     with sessions() as session:
         seed_categories(session)
@@ -431,7 +431,7 @@ def test_upgrade_phase1_preserves_prices_and_admin(tmp_path):
         assert connection.execute(
             "SELECT interval_minutes,enabled,consecutive_failures FROM sources WHERE id=1"
         ).fetchone() == (45, 0, 2)
-        assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0002"
+        assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0003"
 
 
 def test_runtime_executes_second_scheduled_pulse(database):
@@ -463,3 +463,47 @@ def test_runtime_executes_second_scheduled_pulse(database):
             assert session.scalar(select(func.count()).select_from(PriceObservation)) == 6
     finally:
         runtime.stop()
+
+
+def test_upgrade_phase2_preserves_offer_and_observations(tmp_path):
+    database = tmp_path / "phase2.db"
+    env = {**os.environ, "RADAR_DATABASE_URL": f"sqlite:///{database}"}
+    subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "0002"],
+        check=True,
+        env=env,
+        capture_output=True,
+    )
+    with closing(sqlite3.connect(database)) as connection:
+        with connection:
+            connection.execute("INSERT INTO stores(id,name) VALUES(1,'Preexistente')")
+            connection.execute(
+                "INSERT INTO sources(id,store_id,name,connector,enabled,interval_minutes,"
+                "consecutive_failures) VALUES(1,1,'Preexistente','demo',0,42,1)"
+            )
+            connection.execute(
+                "INSERT INTO products(id,source_id,source_product_id,variant_key,name,"
+                "created_at,is_simulated) VALUES(1,1,'id','500g','Demo',"
+                "'2026-01-01 00:00:00',1)"
+            )
+            connection.execute(
+                "INSERT INTO price_observations(id,product_id,price,currency,observed_at,"
+                "is_simulated) VALUES(1,1,80,'MXN','2026-01-01 00:00:00',1)"
+            )
+            connection.execute(
+                "INSERT INTO offers(observation_id,score,status,classification,created_at) "
+                "VALUES(1,30,'discarded','insufficient_information','2026-01-01 00:00:00')"
+            )
+    subprocess.run(
+        [sys.executable, "-m", "radar.cli", "init-db"], check=True, env=env, capture_output=True
+    )
+    with closing(sqlite3.connect(database)) as connection:
+        assert connection.execute(
+            "SELECT price,is_simulated,identity_confidence FROM price_observations"
+        ).fetchone() == (80, 1, 0.5)
+        assert connection.execute("SELECT status FROM offers").fetchone()[0] == "discarded"
+        assert connection.execute(
+            "SELECT interval_minutes,enabled FROM sources WHERE id=1"
+        ).fetchone() == (42, 0)
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert connection.execute("SELECT COUNT(*) FROM price_analyses").fetchone()[0] == 0

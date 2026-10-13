@@ -1,6 +1,6 @@
 # Radar Ofertas VIP
 
-Versión 0.2.0 — **Fase 2: monitoreo de demostración**.
+Versión 0.3.0 — **Fase 3: inteligencia de precios**.
 
 Aplicación local gratuita para preparar la futura detección de ofertas de México.
 **Todos los productos de demostración son SIMULADOS; no son ofertas reales.**
@@ -16,9 +16,13 @@ No consulta tiendas, no publica en Telegram y no gestiona cobros o accesos exter
 - Recuperación de ejecuciones interrumpidas y programación guardada al reiniciar.
 - Control local de monitoreo autenticado: revisión manual, pausa, reactivación e intervalos.
 - Contraseñas con hash, protección CSRF y respaldos SQLite consistentes.
+- Normalización conservadora y clasificación de categorías.
+- Historial por producto/moneda/tipo con estadísticas y variaciones 24h/7d/30d.
+- Referencia por mediana previa, puntuación configurable y advertencias de confianza.
+- Pantallas autenticadas de historial, análisis y oportunidades pendientes.
 
 El control local no sustituye el panel completo de la Fase 6.
-No hay aún analítica de descuentos, fuentes reales, Telegram ni gestión de membresías.
+No hay aún fuentes reales, Telegram ni gestión de membresías.
 
 ## Inicio (Linux, Python 3.12)
 
@@ -39,8 +43,10 @@ intervalo. Una fuente pausada permanece pausada después de init-db y de reinici
 
 ## Documentación
 
-[Arquitectura](ARCHITECTURE.md) · [Configuración](CONFIGURATION.md) ·
+[Arquitectura](ARCHITECTURE.md) · [Fórmula y límites](ANALYTICS.md) · [Configuración](CONFIGURATION.md) ·
 [Pruebas](TESTING.md) · [Operación](DEPLOYMENT.md) · [Resultados](VALIDATION.md) ·
 [Cambios](CHANGELOG.md).
 
-Siguiente fase: historial analítico, normalización y puntuación de oportunidades.
+Al iniciar, los datos de demo pueden indicar Información insuficiente: no se inventa
+un historial largo ni descuentos. Candidatos nuevos siempre quedan pendientes.
+Siguiente fase: evaluación de fuentes reales gratuitas y compatibles con sus condiciones.

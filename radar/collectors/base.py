@@ -10,6 +10,9 @@ class CollectedProduct(BaseModel):
     variant_key: str = Field(min_length=1, max_length=300)
     name: str = Field(min_length=1, max_length=500)
     price: Decimal = Field(ge=0, max_digits=14, decimal_places=2, allow_inf_nan=False)
+    advertised_reference_price: Decimal | None = Field(
+        default=None, ge=0, max_digits=14, decimal_places=2, allow_inf_nan=False
+    )
     currency: str = Field(default="MXN", pattern=r"^[A-Z]{3}$")
     brand: str | None = Field(default=None, max_length=150)
     model: str | None = Field(default=None, max_length=150)

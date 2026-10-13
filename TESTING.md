@@ -1,4 +1,4 @@
-# Pruebas de Fase 2
+# Pruebas de Fase 3
 
 Desde la raíz (PowerShell):
 
@@ -25,4 +25,9 @@ La migración Fase 1 → Fase 2 se prueba con precios, configuración y administ
 Los tests de pulsos adelantan el job y la fecha de ejecución guardada; no esperan 30 minutos
 ni sustituyen la función de obtención/persistencia. El servidor se valida también con
 peticiones HTTP reales. Resultados y limitaciones en VALIDATION.md.
-Pendientes: descuentos, clasificación analítica, fuentes reales, Telegram y membresías.
+Cobertura adicional: descuentos y referencias cero, medianas, referencia sin precio tachado,
+historial corto o del mismo día, separación de moneda/simulación/modelo/presentación/vendedor,
+clasificación, envío que elimina ahorro, disponibilidad desconocida, fechas futuras/vencidas,
+anomalías, pesos configurables, idempotencia y estados de candidatos, fallo analítico sin
+perder precios, escape HTML, API autenticada y actualización 0002 → 0003 con ofertas existentes.
+Pendientes: fuentes reales, Telegram y membresías.

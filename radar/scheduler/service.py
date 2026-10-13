@@ -6,6 +6,13 @@ from uuid import uuid4
 from pydantic import ValidationError
 from sqlalchemy import select, update
 
+from radar.analytics.service import AnalyticsService
+from radar.catalog.normalization import (
+    classify_category,
+    compatible_legacy,
+    normalize_presentation,
+    product_identity,
+)
 from radar.collectors.base import (
     CollectedProduct,
     SourceUnavailableError,
@@ -78,7 +85,7 @@ class MonitorService:
                 if not isinstance(raw, list) or not 1 <= len(raw) <= 1000:
                     raise ValueError("Invalid collector batch")
                 validated = [CollectedProduct.model_validate(item) for item in raw]
-                keys = [(item.source_product_id, item.variant_key) for item in validated]
+                keys = [(item.source_product_id, product_identity(item)[0]) for item in validated]
                 if len(keys) != len(set(keys)):
                     raise ValueError("Duplicate observation in batch")
                 result = validated
@@ -98,7 +105,10 @@ class MonitorService:
                 break
         try:
             if result is not None:
-                self._persist(source_id, run_id, token, attempts, result, collector.is_simulated)
+                ids = self._persist(
+                    source_id, run_id, token, attempts, result, collector.is_simulated
+                )
+                self._analyze(ids)
                 return "success"
         except Exception:
             # Nunca registrar respuestas, URLs, excepciones o credenciales del conector.
@@ -122,45 +132,68 @@ class MonitorService:
         return "failed"
 
     def _persist(self, source_id, run_id, token, attempts, items, is_simulated):
+        observation_ids = []
         with self.sessions.begin() as session:
             source = session.get(Source, source_id)
             if source.running_token != token:
                 raise RuntimeError("Lost run ownership")
             categories = dict(session.execute(select(Category.slug, Category.id)).all())
             for item in items:
+                identity_key, confidence = product_identity(item)
                 product = session.scalar(
                     select(Product).where(
                         Product.source_id == source_id,
                         Product.source_product_id == item.source_product_id,
-                        Product.variant_key == item.variant_key,
+                        Product.variant_key == identity_key,
                     )
                 )
+                if product is None:
+                    legacy = session.scalars(
+                        select(Product).where(
+                            Product.source_id == source_id,
+                            Product.source_product_id == item.source_product_id,
+                        )
+                    ).all()
+                    matching = [
+                        candidate
+                        for candidate in legacy
+                        if normalize_presentation(candidate.variant_key)
+                        == normalize_presentation(item.variant_key)
+                        and compatible_legacy(candidate, item)
+                    ]
+                    if len(matching) == 1:
+                        product = matching[0]
+                        product.variant_key = identity_key
                 if product is None:
                     product = Product(
                         source_id=source_id,
                         source_product_id=item.source_product_id,
-                        variant_key=item.variant_key,
+                        variant_key=identity_key,
                         name=item.name,
                     )
                     session.add(product)
                 for key in ("name", "brand", "model", "presentation", "seller"):
                     setattr(product, key, getattr(item, key))
                 product.url = str(item.url) if item.url else None
-                product.category_id = categories.get(item.category_slug)
+                category = classify_category(item.name, item.category_slug, set(categories))
+                product.category_id = categories.get(category)
                 product.is_simulated = is_simulated
                 session.flush()
-                session.add(
-                    PriceObservation(
-                        product_id=product.id,
-                        price=item.price,
-                        currency=item.currency,
-                        available=item.available,
-                        shipping_cost=item.shipping_cost,
-                        conditions=item.conditions,
-                        observed_at=item.observed_at,
-                        is_simulated=is_simulated,
-                    )
+                observation = PriceObservation(
+                    product_id=product.id,
+                    price=item.price,
+                    currency=item.currency,
+                    available=item.available,
+                    shipping_cost=item.shipping_cost,
+                    advertised_reference_price=item.advertised_reference_price,
+                    identity_confidence=confidence,
+                    conditions=item.conditions,
+                    observed_at=item.observed_at,
+                    is_simulated=is_simulated,
                 )
+                session.add(observation)
+                session.flush()
+                observation_ids.append(observation.id)
             run = session.get(MonitorRun, run_id)
             run.status = "success"
             run.finished_at = utc_now()
@@ -171,3 +204,16 @@ class MonitorService:
             source.next_run_at = utc_now() + timedelta(minutes=source.interval_minutes)
             session.add(EventLog(level="INFO", event_code="monitor_success"))
         logger.info("monitor_success source_id=%s observations=%s", source_id, len(items))
+
+        return observation_ids
+
+    def _analyze(self, observation_ids):
+        try:
+            AnalyticsService(self.sessions, self.settings).analyze(observation_ids)
+        except Exception:
+            logger.warning("analysis_failed: los precios se conservaron; recalcular desde el panel")
+            try:
+                with self.sessions.begin() as session:
+                    session.add(EventLog(level="ERROR", event_code="analysis_failed"))
+            except Exception:
+                logger.error("analysis_event_unavailable")

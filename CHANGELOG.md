@@ -1,5 +1,15 @@
 # Cambios
 
+## 0.3.0 — Fase 3
+
+- Normalización de identidad y clasificación conservadora de categorías.
+- Estadísticas históricas, variaciones y referencia por mediana previa.
+- Puntuación documentada, advertencias, anomalías y exclusión de simulaciones.
+- Análisis automático separado de recopilación; reanálisis idempotente.
+- Historial/API y oportunidades autenticadas, sin publicaciones automáticas.
+- Migración 0003 y guía de actualización conservando datos y credenciales.
+- Reducción de mensajes rutinarios del programador en consola.
+
 ## 0.2.0 — Fase 2
 
 - Conector simulado y contrato normalizado con validación.

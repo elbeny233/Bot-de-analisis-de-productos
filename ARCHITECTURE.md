@@ -1,9 +1,10 @@
-# Arquitectura — Fases 1 y 2
+# Arquitectura — Fases 1–3
 
 Settings → FastAPI → MonitorRuntime/APScheduler → MonitorService → Collector.
 Los datos normalizados de Collector se validan antes de una transacción de persistencia.
 SQLAlchemy → SQLite almacena productos, precios, fuentes, próxima revisión y ejecuciones.
-La obtención de datos no calcula descuentos ni crea ofertas; la analítica llegará en Fase 3.
+La obtención de datos se separa del análisis: después de persistir se ejecuta
+AnalyticsService en otra transacción. Una falla de análisis no revierte los precios.
 
 ## Módulos
 
@@ -11,11 +12,11 @@ La obtención de datos no calcula descuentos ni crea ofertas; la analítica lleg
 |---|---|
 | core | Configuración, hash PBKDF2-SHA256, bloqueo del SO |
 | collectors | Contrato normalizado, errores tipificados, demo sin red |
-| database | 13 modelos, motor, migraciones 0001/0002, inicialización repetible |
+| database | 14 modelos, motor, migraciones 0001/0002/0003, inicialización repetible |
 | scheduler | Reintentos, persistencia, recuperación, programación por fuente |
 | dashboard | Control local de monitoreo; el panel completo es Fase 6 |
 | main/cli | Readiness, inicialización, administrador, respaldos |
-| catalog/analytics | Reservados para Fase 3 |
+| catalog/analytics | Normalización, categorías, estadísticas y puntuación |
 | alerts/telegram/subscriptions | Reservados para fases posteriores |
 
 ## Concurrencia y recuperación
@@ -51,7 +52,7 @@ Identidad: source_id + source_product_id + variant_key. No se mezclan 500g y 1kg
 Cada observación conserva moneda, UTC, envío, condiciones y disponibilidad nullable.
 Cada lote se valida completo y se rechazan identificadores repetidos antes de guardar.
 Productos y observaciones incluyen is_simulated. La demo usa nombres SIMULADO y no URLs.
-La futura analítica deberá separar monedas y excluir datos simulados de publicaciones.
+La analítica separa monedas/tipos y excluye simulaciones de recomendaciones de alta confianza.
 SQLite devuelve datetimes sin zona: el contrato de almacenamiento y lectura es UTC.
 
 ## Seguridad local
@@ -62,3 +63,14 @@ Las acciones requieren token CSRF firmado, vinculado al usuario y válido 15 min
 Se escapa HTML y se limitan intentos de autenticación. Los eventos almacenan códigos,
 no excepciones ni secretos. HTTP Basic se permite aquí solo en loopback; no exponer
 el panel a Internet. Antes de despliegue público se requiere HTTPS y revisión de seguridad.
+
+## Análisis y consultas
+
+PriceObservation agrega advertised_reference_price (nunca referencia histórica) e
+identity_confidence. PriceAnalysis guarda un resultado único por observación, motivos,
+componentes y fecha. El índice compuesto delimita historial por producto/moneda/tipo/fecha.
+Offer almacena candidatos pendientes; no existe aprobación/publicación automática.
+Los GET /analysis, /analysis/{id}, /offers y /products/{id}/history requieren administrador.
+Nombres y condiciones se escapan en HTML; búsquedas usan parámetros SQLAlchemy.
+La fórmula versionada y los límites están en ANALYTICS.md. Las puntuaciones guardadas son
+instantáneas; hay que recalcular antes de actuar cuando la información haya envejecido.

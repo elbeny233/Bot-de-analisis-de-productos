@@ -23,3 +23,25 @@ Crear administrador con la CLI y su contraseña interactiva; no ponerla en argum
 El navegador solicita usuario/contraseña al entrar en /monitor. Cerrar el navegador elimina
 normalmente su autenticación Basic en memoria; el cierre de sesión completo será Fase 6.
 Fechas del control local y de la base de datos en UTC, indicadas explícitamente.
+
+## Analítica (Fase 3)
+
+| Variable | Inicial |
+|---|---|
+| RADAR_ANALYSIS_REFERENCE_DAYS | 30 |
+| RADAR_ANALYSIS_MIN_OBSERVATIONS | 5 |
+| RADAR_ANALYSIS_MIN_HISTORY_DAYS | 7 |
+| RADAR_ANALYSIS_MIN_DISTINCT_DAYS | 3 |
+| RADAR_ANALYSIS_MAX_AGE_HOURS | 24 |
+| RADAR_ANALYSIS_MIN_DISCOUNT_PERCENT | 10 |
+| RADAR_ANALYSIS_FULL_DISCOUNT_PERCENT | 50 |
+| RADAR_ANALYSIS_ANOMALY_DROP_PERCENT | 80 |
+| RADAR_ANALYSIS_ANOMALY_RISE_MULTIPLIER | 5 |
+| RADAR_ANALYSIS_MIN_SCORE | 70 |
+| RADAR_ANALYSIS_MIN_IDENTITY_CONFIDENCE | 0.8 |
+
+RADAR_ANALYSIS_WEIGHTS acepta JSON con discount, history, availability, freshness, costs
+ e identity: pesos enteros no negativos, suma 100. Valores iniciales: 40,20,10,10,10,10.
+Cambios en .env requieren reiniciar. Recalcular análisis aplica la configuración nueva
+al último precio de cada ámbito; no cambia publicaciones ni estados de ofertas.
+Fórmula y límites: ANALYTICS.md. Las publicaciones continúan bloqueadas.

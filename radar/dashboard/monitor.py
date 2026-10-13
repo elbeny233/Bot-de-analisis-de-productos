@@ -14,7 +14,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy import select
 
+from radar.analytics.service import AnalyticsService
 from radar.core.security import verify_password
+from radar.dashboard.prices import register_price_routes
 from radar.database.models import (
     AdminUser,
     EventLog,
@@ -98,6 +100,7 @@ def monitor_router() -> APIRouter:
             events = session.scalars(select(EventLog).order_by(EventLog.id.desc()).limit(20)).all()
             prices = session.execute(
                 select(
+                    Product.id,
                     Product.name,
                     PriceObservation.price,
                     PriceObservation.currency,
@@ -109,10 +112,11 @@ def monitor_router() -> APIRouter:
                 .limit(12)
             ).all()
         price_rows = "".join(
-            f"<tr><td>{escape(name)}</td><td>{price} {escape(currency)}</td>"
+            f'<tr><td><a href="/analysis/{product_id}">{escape(name)}</a></td>'
+            f"<td>{price} {escape(currency)}</td>"
             f"<td>{'Desconocida' if available is None else ('Sí' if available else 'No')}</td>"
             f"<td>{'SIMULADO' if simulated else 'No simulado'}</td></tr>"
-            for name, price, currency, available, simulated in prices
+            for product_id, name, price, currency, available, simulated in prices
         )
         rows = []
         for source in sources:
@@ -126,6 +130,7 @@ def monitor_router() -> APIRouter:
                 ("run", "Revisar ahora"),
                 ("pause", "Pausar"),
                 ("resume", "Reactivar"),
+                ("analyze", "Recalcular análisis"),
             ]:
                 forms.append(
                     f'<form method="post" action="/monitor/{source.id}/{action}">'
@@ -176,7 +181,8 @@ def monitor_router() -> APIRouter:
         <h2>Últimos precios registrados</h2><div class="scroll"><table>
         <tr><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Tipo de dato</th></tr>
         {price_rows}</table></div><h2>Últimos eventos</h2><ul>{event_rows}</ul>
-        <p><a href="/">Inicio</a></p></html>""",
+        <p><a href="/analysis">Historial y análisis</a> · <a href="/offers">Oportunidades</a>
+        · <a href="/">Inicio</a></p></html>""",
             headers={
                 "Cache-Control": "no-store",
                 "X-Content-Type-Options": "nosniff",
@@ -199,10 +205,10 @@ def monitor_router() -> APIRouter:
         form = parse_qs(raw.decode("utf-8", errors="replace"))
         if not valid_csrf(username, form.get("csrf", [""])[0]):
             raise HTTPException(403, "Formulario vencido o inválido; actualiza la página")
-        if action not in {"run", "pause", "resume", "interval"}:
+        if action not in {"run", "pause", "resume", "interval", "analyze"}:
             raise HTTPException(404, "Acción desconocida")
         runtime = request.app.state.monitor
-        if runtime is None:
+        if runtime is None and action != "analyze":
             raise HTTPException(503, "El programador está deshabilitado")
         with request.app.state.sessions.begin() as session:
             source = session.get(Source, source_id)
@@ -228,7 +234,12 @@ def monitor_router() -> APIRouter:
             status = await anyio.to_thread.run_sync(runtime.run_source, source_id)
             if status in {"paused", "already_running", "failed"}:
                 raise HTTPException(409, f"Revisión no completada: {status}")
-        runtime.refresh()
+        if action == "analyze":
+            analyzer = AnalyticsService(request.app.state.sessions, request.app.state.settings)
+            await anyio.to_thread.run_sync(analyzer.analyze_source, source_id)
+        if runtime is not None:
+            runtime.refresh()
         return RedirectResponse("/monitor", status_code=303)
 
+    register_price_routes(router, admin)
     return router

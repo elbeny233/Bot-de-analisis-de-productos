@@ -3,7 +3,7 @@
 Instala Python 3.12.10 de python.org. No necesitas Git ni Docker.
 Descarga el proyecto desde GitHub (Code → Download ZIP), extrae y abre PowerShell
 **en la carpeta que contiene pyproject.toml**, usando Alt+D y escribiendo powershell.
-Si ya tienes Fase 1, sigue [UPDATE_WINDOWS.md](UPDATE_WINDOWS.md).
+Si ya tienes Fase 1 o 2, sigue [UPDATE_WINDOWS.md](UPDATE_WINDOWS.md).
 
 ```powershell
 py -3.12 --version
@@ -26,10 +26,14 @@ la contraseña elegida. Verás datos SIMULADOS, próximas revisiones, estados y 
 Pulsa Revisar ahora y comprueba una ejecución success con tres precios guardados.
 La disponibilidad desconocida se conserva. No son ofertas reales ni se envían mensajes.
 
-En /health se espera status=ok, phase=2, schema_revision=0002,
+En /health se espera status=ok, phase=3, schema_revision=0003,
 scheduler_running=true y publications_enabled=false. Deja PowerShell abierto.
 Detener: Ctrl+C. Reiniciar: repetir el comando uvicorn. Si otra instancia está abierta,
 detenerla antes: no usar múltiples workers ni borrar el archivo .monitor.lock.
 
-Pruebas de Fase 2 ejecutadas en Linux; Windows requiere validación del propietario.
-La Fase 1 y su corrección de cierre SQLite ya se verificaron por el propietario en Windows.
+Pruebas de Fase 3 ejecutadas en Linux; Windows requiere validación del propietario.
+Las Fases 1 y 2 ya se verificaron por el propietario en Windows (20 y 47 pruebas pasadas).
+
+Entra en Historial y análisis y selecciona un producto. Inicialmente verás Información
+insuficiente, porque no existe aún un historial distribuido durante varios días.
+Esto no es un fallo. Oportunidades puede estar vacía: los precios de demo son fijos.

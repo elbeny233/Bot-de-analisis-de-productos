@@ -2,10 +2,12 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -77,6 +79,7 @@ class PriceObservation(Base):
         CheckConstraint("price >= 0"),
         CheckConstraint("shipping_cost IS NULL OR shipping_cost >= 0"),
         CheckConstraint("length(currency) = 3"),
+        Index("ix_price_history_scope", "product_id", "currency", "is_simulated", "observed_at"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
@@ -85,6 +88,10 @@ class PriceObservation(Base):
     available: Mapped[bool | None] = mapped_column(Boolean)
     shipping_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     is_simulated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    advertised_reference_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    identity_confidence: Mapped[Decimal] = mapped_column(
+        Numeric(3, 2), default=Decimal("0.50"), server_default="0.50"
+    )
     conditions: Mapped[str | None] = mapped_column(Text)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
@@ -171,3 +178,23 @@ class EventLog(Base):
     level: Mapped[str] = mapped_column(String(20))
     event_code: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PriceAnalysis(Base):
+    __tablename__ = "price_analyses"
+    __table_args__ = (CheckConstraint("score >= 0 AND score <= 100"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    observation_id: Mapped[int] = mapped_column(ForeignKey("price_observations.id"), unique=True)
+    reference_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    effective_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    advertised_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    score: Mapped[int] = mapped_column(Integer)
+    classification: Mapped[str] = mapped_column(String(80))
+    history_count: Mapped[int] = mapped_column(Integer)
+    history_days: Mapped[Decimal] = mapped_column(Numeric(8, 2))
+    distinct_days: Mapped[int] = mapped_column(Integer)
+    review_candidate: Mapped[bool] = mapped_column(Boolean, default=False)
+    reasons: Mapped[list[str]] = mapped_column(JSON)
+    components: Mapped[dict[str, float]] = mapped_column(JSON)
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

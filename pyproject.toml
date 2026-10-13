@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "radar-ofertas-vip"
+version = "0.1.0"
+description = "Fundación local de Radar Ofertas VIP"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.115.12", "uvicorn==0.34.3", "SQLAlchemy==2.0.41",
+  "alembic==1.16.1", "pydantic-settings==2.9.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.0", "httpx==0.28.1", "ruff==0.11.13"]
+
+[tool.setuptools.packages.find]
+include = ["radar*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

@@ -51,3 +51,17 @@ la operación afectada se reintentará después de ese cambio.
 
 Fases 1–3: el propietario verificó en Windows 20, 47 y 92 pruebas pasadas respectivamente.
 No se considera completada la Fase 4 con estos datos pendientes.
+
+## Seguimiento: enlace oficial proporcionado por el propietario
+
+La página https://www.walmart.com.mx/ayuda/articulo/terminos-y-condiciones/0ce968556dd14c0e98097b3675d39b08
+respondió HTTP 200. La página de ayuda no contiene los términos completos; enlaza a:
+https://www.walmartmexico.com/content/dam/walmart-mexico/documents/terminos_y_condiciones/Terminos_y_Condiciones_de_Walmart.pdf
+
+La descarga de ese PDF y la página de propiedad intelectual del mismo dominio quedaron
+bloqueadas por el proxy del entorno. Se añadió www.walmartmexico.com al borrador,
+preservando los dominios previamente configurados. Pendiente de aplicación de red.
+https://www.walmart.com.mx/robots.txt respondió HTTP 418 con contenido HTML; no se obtuvo
+un archivo de reglas válido. No se reintenta con identidades falsas ni mecanismos de evasión.
+El HTTP 200 de la ayuda no establece permiso para extracción, acceso a productos o precios
+localizados en CP 37278. No se implementó ni habilitó un conector real por este resultado.

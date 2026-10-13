@@ -65,3 +65,57 @@ https://www.walmart.com.mx/robots.txt respondió HTTP 418 con contenido HTML; no
 un archivo de reglas válido. No se reintenta con identidades falsas ni mecanismos de evasión.
 El HTTP 200 de la ayuda no establece permiso para extracción, acceso a productos o precios
 localizados en CP 37278. No se implementó ni habilitó un conector real por este resultado.
+
+## Resultado de la revisión documental
+
+Se descargó la copia desde el enlace oficial del PDF, ya que el adjunto excede el límite
+de transferencia de 32 MiB. Archivo oficial: 40658186 bytes, SHA-256
+93ad68de53b469b91ccc467cafa113b9fe4951e2a8c2d003021bc28f60d2c03b.
+No se pudo comparar byte a byte con el adjunto. El PDF es una página muy alta; la extracción
+de texto pierde caracteres en el tramo final. La cláusula siguiente se confirmó visualmente
+al renderizar la sección 07, sin depender únicamente de búsquedas de palabras u OCR.
+
+### Walmart y Bodega Aurrera: no activar extracción sin autorización aplicable
+
+PDF oficial, sección 07, Disposiciones generales → Sobre usos indebidos de los Sitios Web:
+
+> Utilizar herramientas automatizadas para obtener información de los Sitios.
+
+El documento incluye Walmart y Bodega Aurrera entre los negocios cubiertos y se refiere
+al uso de los sitios de compras en línea del Grupo Walmart. Es una restricción del PDF
+de compras, independiente de las condiciones del sitio corporativo.
+Su última actualización visible es 01 de septiembre de 2026. Se verificará de nuevo
+antes de cualquier integración, dado que la página de ayuda anuncia cambios próximos.
+No se consultaron productos ni se verificaron precios/cobertura para CP 37278.
+
+### Soriana: extracción y uso comercial restringidos
+
+https://www.soriana.com/static-pages/terminos-y-condiciones.html respondió HTTP 200.
+En el apartado de USO INDEBIDO incluye:
+
+> La utilización de tecnología para realizar la extracción, obtención o recopilación, directa o indirecta, de cualquier información incluida en el SITIO.
+
+También incluye el uso comercial del sitio o sus contenidos. robots.txt respondió 200,
+pero que una ruta no esté excluida no anula esas condiciones. No activar un extractor
+para Radar Ofertas VIP sin una autorización aplicable o fuente con licencia distinta.
+
+### Chedraui: posible vía mediante autorización previa por escrito
+
+https://www.chedraui.com.mx/terminos-y-condiciones/plataformas-digitales respondió HTTP 200.
+Sección 2, De la licencia: limita copiar información a uso personal no comercial y
+condiciona otros usos a autorización previa por escrito. Esto no confirma que Chedraui
+ofrezca una API o un feed gratuitos ni que concederá permiso: hay que consultarlo.
+robots.txt respondió 200, con múltiples rutas excluidas que habría que respetar además
+si se autoriza el acceso. No se consultaron productos, precios o cobertura localizada.
+
+## Siguiente acción concreta
+
+Solicitar una autorización o una fuente de datos autorizada antes de implementar el
+conector comercial. Chedraui es candidata para preguntar por esa vía escrita, no una
+fuente ya aprobada. Borrador listo en REQUEST_DATA_ACCESS.md; no se envió a nadie.
+Puede usarse también para Walmart o Soriana adaptando el destinatario.
+No se contratarán servicios, creará cuentas ni enviarán mensajes sin instrucciones.
+No se propone como alternativa recopilar manualmente el mismo contenido restringido
+para republicarlo comercialmente. Un archivo/API de precios facilitado con autorización
+adecuada sí permitiría continuar el desarrollo y la verificación de datos reales.
+Fase 4 sigue pendiente de una vía compatible; Fases 1–3 no se modificaron.
